@@ -1,44 +1,97 @@
 # 🚀 LeetCode Accountability System
 
-A lightweight Python-based background service that enforces **daily LeetCode consistency** by automatically tracking your submissions and sending reminder emails if you miss a day.
+A serverless Python-based system that enforces **daily LeetCode consistency** by automatically tracking submissions and sending reminder emails if you skip a day.
 
 ---
 
-## 🎯 What It Does
+## 🎯 The Problem
 
-* Monitors your **public LeetCode activity** using your username
-* Uses **UTC time (LeetCode reset time)** for accurate daily tracking
-* Sends **automated email reminders** if no submission is detected
-* Runs continuously as a **local background daemon**
-* Requires **zero manual input after setup**
+Initially, this system was built as a **local background script** that:
+
+* Ran continuously using a `while True` loop
+* Checked LeetCode activity at fixed intervals
+* Sent reminder emails if no submission was made
+
+### ❌ Limitations of the Local Approach
+
+* Required the user's **laptop to stay ON 24/7**
+* Consumed unnecessary system resources
+* Stopped working if the terminal was closed
+* Not practical for real-world usage
 
 ---
 
-## 🧠 How It Works
+## ⚡ The Solution (Architecture Upgrade)
 
-1. Fetches your recent submissions using LeetCode’s GraphQL API
-2. Extracts the latest submission timestamp
-3. Compares it with the current UTC date
-4. If no submission is found for today:
+The system was redesigned using a **serverless cron-based architecture** powered by GitHub Actions.
 
-   * Sends a reminder email
-   * Repeats at fixed intervals until you solve a problem
+### 🔥 Key Idea:
+
+Instead of running continuously, the system:
+
+> Executes only when needed, on cloud infrastructure.
+
+---
+
+## 🧠 How It Works Now
+
+1. GitHub Actions triggers the workflow every *N hours* (cron job)
+2. A fresh virtual machine (`ubuntu-latest`) is created
+3. The repository is cloned and dependencies are installed
+4. The Python script runs:
+
+   * Fetches LeetCode submissions
+   * Checks if a problem was solved today (UTC)
+   * Sends email if inactive
+5. The machine is destroyed after execution
+
+---
+
+## 🔄 Execution Model
+
+**Old Model (Local Daemon):**
+
+```
+while True:
+    check()
+    sleep()
+```
+
+**New Model (Serverless Cron):**
+
+```
+Every N hours:
+    spin up machine → run script → shut down
+```
+
+---
+
+## 🔐 Secure Configuration
+
+Sensitive data is handled using **GitHub Secrets**:
+
+* `SENDER_EMAIL`
+* `APP_PASSWORD`
+* `LEETCODE_USERNAME`
+* `TARGET_EMAIL`
+
+> No credentials are stored in the repository or hardcoded.
 
 ---
 
 ## ⚙️ Tech Stack
 
 * **Language:** Python 3
-* **API Handling:** `requests` (LeetCode GraphQL queries)
-* **Scheduling:** `schedule` (continuous background execution)
+* **API Handling:** `requests` (LeetCode GraphQL API)
 * **Email Service:** `smtplib` via Gmail SMTP
+* **Automation:** GitHub Actions (cron-based execution)
 * **Environment Management:** `python-dotenv`
 
 ---
 
 ## 📦 Setup Instructions
 
-### 1. Clone & Create Virtual Environment
+### 1. Clone Repository & Setup Environment
 
 ```bash
 python -m venv venv
@@ -60,52 +113,52 @@ pip install -r requirements.txt
 
 ---
 
-### 3. Configure Environment Variables
+### 3. Configure Secrets (IMPORTANT)
 
-Create a `.env` file in the root directory:
+Since this project runs on GitHub Actions:
 
-```env
-# Gmail credentials (App Password required)
+1. Go to your repository → **Settings**
+2. Navigate to: **Secrets and variables → Actions**
+3. Add the following secrets:
+
+```
 SENDER_EMAIL=your_email@gmail.com
 APP_PASSWORD=your_16_character_app_password
-
-# Tracking configuration
-LEETCODE_USERNAME=your_leetcode_username
+LEETCODE_USERNAME=your_username
 TARGET_EMAIL=your_email@gmail.com
-INTERVAL_HOURS=2
 ```
-
-> ⚠️ Make sure `.env` is added to `.gitignore` to keep credentials secure.
 
 ---
 
-### 4. Run the System
+### 4. Workflow Configuration
 
-```bash
-python main.py
+The automation is defined in:
+
+```
+.github/workflows/leetcode_tracker.yml
 ```
 
-* Runs an **initial check immediately**
-* Continues monitoring in the background at your defined interval
-* Keep the terminal open to keep the service running
+Example schedule:
 
----
+```yaml
+- cron: '0 */2 * * *'  # Runs every 2 hours
+```
 
-## 🔐 Security Notes
+You can also trigger it manually using:
 
-* Uses **Gmail App Passwords** (not your real password)
-* Credentials are stored locally via `.env`
-* No sensitive data is hardcoded or exposed
+```
+workflow_dispatch
+```
 
 ---
 
 ## 🧪 Example Behavior
 
-| Scenario                   | Outcome                           |
-| -------------------------- | --------------------------------- |
-| You solved a problem today | ✅ No email sent                   |
-| You didn’t solve           | 📧 Reminder sent                  |
-| Still inactive             | 🔁 Repeated reminders at interval |
+| Scenario              | Outcome                     |
+| --------------------- | --------------------------- |
+| Submission made today | ✅ No email sent             |
+| No submission         | 📧 Reminder sent            |
+| Still inactive        | 🔁 Repeated checks via cron |
 
 ---
 
@@ -114,18 +167,24 @@ python main.py
 * Multi-user support (database integration)
 * SMS notifications (via APIs like Twilio)
 * Web dashboard for tracking streaks
-* Deployment as a cloud service (24/7 uptime)
+* SaaS version with user authentication
 
 ---
 
 ## 🧨 Why This Exists
 
-Consistency beats motivation.
+Motivation is unreliable. Systems are not.
 
-This system removes excuses by **automating accountability** — if you skip, it reminds you until you don’t.
+This project removes friction and excuses by:
+
+> **automating discipline through external enforcement**
 
 ---
 
 ## 📌 One-Line Summary
 
-> A no-excuses system that tracks your LeetCode activity and forces daily consistency through automated reminders.
+> A serverless system that uses cron-based cloud execution to track LeetCode activity and enforce daily consistency via automated reminders.
+
+---
+BY- 
+T.VAISHNAV 😃👾
